@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Live PSI Indicator</title>
+    <!-- Including jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-colors-2021.css">
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-colors-2020.css">
+
+
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@100..900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+
+
+
+            --tbhead: #615550;
+
+            --bg0: #d5d1c3;
+            --fg0: #2d2a1f;
+            --bg1: #D2C29D;
+            --bg2: #F0EAD6;
+
+            font-family: 'Noto Sans Mono', 'Inconsolata', 'Courier New', monospace;
+            text-align: center;
+            background: var(--bg0);
+            color: var(--fg0);
+            margin: 0;
+        }
+
+        h1 {
+            font-family: 'Noto Sans Mono';
+            font-weight: bold;
+        }
+
+        #container {
+            text-align: center;
+            padding: 0 40px;
+            max-width: 1900px;
+            margin: 0 auto;
+        }
+
+        table {
+            margin: auto;
+            width: 100%;
+            max-width: 60vw;
+            /* Adjust the maximum width as needed */
+            border-collapse: collapse;
+            border: none;
+            /* Remove table border */
+        }
+
+        /* Define styles for table headers */
+        th {
+            background-color: var(--tbhead);
+            /* Set background color for table headers */
+            color: white;
+            /* Set text color for table headers */
+            padding: 15px;
+            /* Increase padding for better appearance */
+            border: none;
+            text-transform: capitalize;
+        }
+
+        /* Define alternating row colors */
+        tr:nth-child(even) {
+            background-color: var(--bg2);
+            /* Set background color for even rows */
+            border: none;
+        }
+
+        tr:nth-child(odd) {
+            background-color: var(--bg1);
+            /* Set background color for odd rows */
+            border: none;
+        }
+
+        td {
+            padding: 15px;
+            /* Increase padding for better appearance */
+            border: none;
+            /* Remove cell borders */
+            outline: none;
+        }
+
+        .border-none {
+            border: none;
+        }
+    </style>
+
+
+
+</head>
+
+<body>
+    <div id="container">
+        <!-- Header -->
+        <h1>Live PSI Update</h1>
+        <!-- Container for timestamp -->
+        <p><span id="timestamp"></span></p>
+        <!-- Table to display PSI data -->
+        <table id="psi_table" style="border-collapse: collapse; border-style: hidden;">
+        </table>
+        <td style="border: none; padding: 10px;"></td>
+        <!-- Data source information -->
+        <p><em>Source: </em><a href="https://data.gov.sg/dataset/psi" target="_blank">Pollutant Standards Index (PSI) -
+                data.gov.sg</a></p>
+        <p /n>Submitted by: Nirubhama Venkatachalam</p>
+    </div>
+
+    <!-- JavaScript code -->
+    <script>
+        //declaring variables to store raw data
+        let PSI_data = {};
+        let PSI_readings = {};
+        let timestamp = "";
+
+        //structuring the PSI table - setting up placeholder definitions of rows and columns 
+        let rows = {
+            psi_twenty_four_hourly: "PSI (24-hr)",
+            pm25_sub_index: "PM2.5 (sub-index)",
+            pm25_twenty_four_hourly: "PM2.5 (µg/m3)(24-hr)",
+            pm10_sub_index: "PM10 (sub-index)",
+            pm10_twenty_four_hourly: "PM10 (µg/m3)(24-hr)",
+            so2_sub_index: "SO2 (sub-index)",
+            so2_twenty_four_hourly: "SO2 (µg/m3)(24-hr)",
+            co_sub_index: "CO (sub-index)",
+            co_eight_hour_max: "CO (mg/m3)(8-hr)",
+            o3_sub_index: "O3 (sub-index)",
+            o3_eight_hour_max: "O3 (µg/m3)(8-hr)",
+            no2_one_hour_max: "NO2 (µg/m3)(1-hr)"
+        };
+
+        let columns = ["central", "north", "east", "west", "south"];
+
+        // Function to fetch PSI data
+        function fetchPSIData() {
+            // Using jQuery's AJAX function to make a GET request
+            $.ajax({
+                url: 'https://api.data.gov.sg/v1/environment/psi',
+                method: 'GET',
+                success: function (data) {
+                    // Call function to update UI with data
+                    updateUI(data);
+                },
+                error: function () {
+                    console.error('Error fetching PSI data.');
+                }
+            });
+        }
+
+        // Function to update UI with PSI data
+        function updateUI(data) {
+            // Extracting timestamp from data
+            var timestamp = new Date(data.items[0].timestamp);
+            // Displaying timestamp
+            $('#timestamp').text('Last updated: ' + timestamp);
+
+            // Extracting readings from data
+            var readings = data.items[0].readings;
+
+            // Creating HTML for table headers
+            var tableHeaders = '<tr><th style="border: none; padding: 8px;">Region</th>';
+            $.each(columns, function (index, region) {
+                tableHeaders += '<th style="border: none; padding: 8px;">' + region + '</th>';
+            });
+            tableHeaders += '</tr>';
+
+            // Creating HTML for table rows
+            var tableRows = '';
+            $.each(rows, function (key, value) {
+                // Add class based on row content
+                var rowClass = key.includes('sub_index') ? 'sub-index' : key.includes('hourly') ? 'hourly' : '';
+                tableRows += '<tr class="' + rowClass + '" style="border: none;">';
+                tableRows += '<td style="border: none; padding: 8px;">' + value + '</td>';
+                $.each(columns, function (index, region) {
+                    tableRows += '<td style="border: none; padding: 8px;">' + readings[key][region] + '</td>';
+                });
+                tableRows += '</tr>';
+            });
+
+            // Updating PSI table with headers and rows
+            $('#psi_table').html(tableHeaders + tableRows);
+        }
+
+        // Fetch PSI data initially and then every hour
+        fetchPSIData();
+        setInterval(fetchPSIData, 60 * 60 * 1000); // Fetch data every hour
+    </script>
+</body>
+
+</html>
